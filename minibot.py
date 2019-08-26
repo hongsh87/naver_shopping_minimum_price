@@ -20,19 +20,19 @@ class mini_bot():
         self.window.minsize('500','150')
         self.window.title("Welcome to Minimum price Bot!")
         self.window.geometry('500x150+350+200')        
-        self.lbl = Entry(self.window,width=25,bd=2)
+        self.lbl = Entry(self.window,width=20,bd=2)
         self.lbl.grid(column=0, row=0)
         self.lbl.insert(0,"Upload file")
         self.lbl.configure(fg="gray")
         self.lbl.config(state='readonly')
-        self.txt = Entry(self.window,width=25, font=("Arial Bold",10))
+        self.txt = Entry(self.window,width=20, font=("Arial Bold",10))
         self.txt.grid(column=0, row=2)
         self.txt.insert(0,"item code")
         self.txt.configure(fg="gray")
-        self.txt.bind("<Button>", self.remove_txt)
-        self.btn1 = Button(self.window,width=25, text="Search", command=self.get_minimum_price)
+        self.txt.bind("<Button>", self.initial_txt)
+        self.btn1 = Button(self.window,width=20, text="Search", command=self.get_minimum_price)
         self.btn2 = Button(self.window,width=20, text="remove", command=self.remove_txt)
-        self.btn3 = Button(self.window,width=25, text='FileUpload', command=self.upload_file)
+        self.btn3 = Button(self.window,width=20, text='FileUpload', command=self.upload_file)
         self.btn4 = Button(self.window,width=20, text='FileSearch', command=self.search_file)
         self.btn1.grid(column=1, row=2)
         self.btn2.grid(column=2, row=2)
@@ -56,7 +56,7 @@ class mini_bot():
                     e = Entry(self.window,bd=2)
                     e.insert(0, print_df.iloc[r,c])
                     e.grid(row=r+3, column=c)
-                    e.config(width=25,state='readonly')
+                    e.config(width=20,state='readonly')
     
     def write_csv(self,itemCode):
         result = OrderedDict()
@@ -66,11 +66,13 @@ class mini_bot():
         html = respone.content
         bs = BeautifulSoup(html, 'html.parser')
         titles = bs.findAll('a', attrs={'class': 'tit'})
-        prices = bs.findAll('span', attrs={'class': 'num _price_reload'})
+        prices = bs.findAll('span', attrs={'class': 'num _price_reload'})        
+        malls = bs.select("div.info_mall")
         
         title_list = []
-        price_list = []   
-        link_list = []         
+        price_list = []
+        mall_list = []
+        link_list = []
         for tit in titles:
             dir(tit)
             if tit.text != "쇼핑몰별 최저가":        
@@ -78,25 +80,33 @@ class mini_bot():
                 link_list.append(tit.attrs['href'])
         for p in prices:
             price_list.append(p.text)
+        for ma in malls:
+            if ma.select("a._btn_mall_detail") !=[]:
+                mall_list.append(ma.select("a._btn_mall_detail")[0].attrs['data-mall-name'])
+            else:
+                mall_list.append(ma.select("span.mall_name")[0].text)
             
         result['title'] = title_list[0:3]
         result['price'] = price_list[0:3]
-        result['link'] = link_list[0:3]
-        
+        result['mall'] = mall_list[0:3]
+        result['link'] = link_list[0:3]        
         
         print_result['title'] = title_list[0:3]
         print_result['price'] = price_list[0:3]
+        print_result['mall'] = mall_list[0:3]
     
-        df = DataFrame(result)
-        
-        
+        df = DataFrame(result)        
         if not os.path.isdir("C:/miniBot/"+self.today.strftime("%y%m%d")):
             os.mkdir("C:/miniBot/"+self.today.strftime("%y%m%d"))        
         df.to_csv("C:/miniBot/"+self.today.strftime("%y%m%d")+"/"+str(itemCode)+".csv", index=False, encoding="ms949")
         return print_result
     
+    def initial_txt(self,event=""):
+        self.txt.configure(fg="black")
+        self.txt.delete(0, END)
+            
     def remove_txt(self,event=""):
-        if self.txt.get() != "item code":            
+        if self.txt.get() != "item code":
             self.txt.configure(fg="black")
             self.txt.delete(0, END)
         
