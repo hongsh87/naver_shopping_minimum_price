@@ -102,8 +102,9 @@ class mini_bot():
         return print_result
     
     def initial_txt(self,event=""):
-        self.txt.configure(fg="black")
-        self.txt.delete(0, END)
+        if self.txt.get() == "item code":
+            self.txt.configure(fg="black")
+            self.txt.delete(0, END)
             
     def remove_txt(self,event=""):
         if self.txt.get() != "item code":
