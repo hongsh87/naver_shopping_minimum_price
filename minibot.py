@@ -30,7 +30,7 @@ class mini_bot():
         self.txt.insert(0,"item code")
         self.txt.configure(fg="gray")
         self.txt.bind("<Button>", self.initial_txt)
-        self.btn1 = Button(self.window,width=20, text="Search", command=self.get_minimum_price)
+        self.btn1 = Button(self.window,width=20, text="Search", command=self.search_text)
         self.btn2 = Button(self.window,width=20, text="remove", command=self.remove_txt)
         self.btn3 = Button(self.window,width=20, text='FileUpload', command=self.upload_file)
         self.btn4 = Button(self.window,width=20, text='FileSearch', command=self.search_file)
@@ -40,15 +40,16 @@ class mini_bot():
         self.btn4.grid(column=2, row=0)
         self.fileName = ""
         self.today = datetime.today()
+        self.itemCode = ""
         self.window.mainloop()
         
-    def get_minimum_price(self):
+    def search_text(self):
         itemCode = self.txt.get()
         print_result = {}
         if itemCode == "item code":
             self.pop_msg("require item code!")
         else:
-            print_result = self.write_csv(itemCode)
+            print_result = self.search_price(itemCode)
             print_df = DataFrame(print_result)
             rows, cols = print_df.shape
             for r in range(rows):
@@ -58,7 +59,8 @@ class mini_bot():
                     e.grid(row=r+3, column=c)
                     e.config(width=20,state='readonly')
     
-    def write_csv(self,itemCode):
+    def search_price(self,itemCode,isFile=False):
+        self.itemCode = itemCode
         result = OrderedDict()
         print_result = OrderedDict()
         url = "https://search.shopping.naver.com/search/all.nhn?origQuery=%s&pagingIndex=1&pagingSize=40&viewType=list&sort=price_asc&frm=NVSHATC&query=%s" % (itemCode,itemCode)
@@ -93,13 +95,18 @@ class mini_bot():
         
         print_result['title'] = title_list[0:3]
         print_result['price'] = price_list[0:3]
-        print_result['mall'] = mall_list[0:3]
+        print_result['mall'] = mall_list[0:3]    
+        df = DataFrame(result)
+        if isFile == True:
+            return df
+        else:
+            self.write_csv(df)            
+        return print_result
     
-        df = DataFrame(result)        
+    def write_csv(self,df):
         if not os.path.isdir("C:/miniBot/"+self.today.strftime("%y%m%d")):
             os.mkdir("C:/miniBot/"+self.today.strftime("%y%m%d"))        
-        df.to_csv("C:/miniBot/"+self.today.strftime("%y%m%d")+"/"+str(itemCode)+".csv", index=False, encoding="ms949")
-        return print_result
+        df.to_csv("C:/miniBot/"+self.today.strftime("%y%m%d")+"/"+str(self.itemCode)+".csv", index=False, encoding="ms949")
     
     def initial_txt(self,event=""):
         if self.txt.get() == "item code":
@@ -110,6 +117,8 @@ class mini_bot():
         if self.txt.get() != "item code":
             self.txt.configure(fg="black")
             self.txt.delete(0, END)
+            self.txt.insert(0,"item code")
+            self.txt.configure(fg="gray")
         
     def upload_file(self):
         self.fileName = filedialog.askopenfilename()        
@@ -119,6 +128,7 @@ class mini_bot():
         self.lbl.config(state='readonly')
 
     def search_file(self): 
+        total_df = DataFrame()
         if self.fileName == "":
             self.pop_msg("require upload file!")
         else:            
@@ -127,7 +137,8 @@ class mini_bot():
                     line = line.decode("utf-8")
                     line = re.sub("[\r\n]","",line)
                     itemCode = line
-                    self.write_csv(itemCode)
+                    total_df = total_df.append(self.search_price(itemCode,isFile=True))
+                self.write_csv(total_df)
             self.pop_msg('Check [C:/miniBot/'+self.today.strftime("%y%m%d")+'] folder')
         
     def pop_msg(self,msg=""):
